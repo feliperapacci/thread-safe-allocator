@@ -24,5 +24,5 @@ void* tsmm_realloc(void* oldptr, size_t size);
 
 // calloc
 // Same behavior as malloc, but zero-initializes payload to zero
-void* tsmm_calloc(size_t elements, size_t size)
+void* tsmm_calloc(size_t elements, size_t size);
 
