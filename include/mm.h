@@ -1,4 +1,10 @@
 #pragma once
+#include <assert.h>
+#include <unistd.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdint.h>
+#include <stddef.h>
 
 // init
 // Initializes the allocator.

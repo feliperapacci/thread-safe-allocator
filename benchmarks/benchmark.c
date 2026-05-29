@@ -2,4 +2,5 @@
 
 int main() {
     // Benchmark allocator...
+    return 0;
 }

@@ -13,10 +13,28 @@ target_include_directories(tsmm_lib
     PUBLIC include
     PRIVATE src
 )
-target_compile_options(tsmm_lib PRIVATE -O2 -Wall -Wextra)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(tsmm_lib PRIVATE -O0 -g -Wall -Wextra)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(tsmm_lib PRIVATE -O2 -Wall -Wextra)
+endif()
+
 target_link_libraries(tsmm_lib pthread)
 
 # Create Benchmark Program
 add_executable(bench benchmarks/benchmark.c)
 target_link_libraries(bench tsmm_lib)
+
+# Testing Binary
+add_executable(tests
+    tests/test.c 
+    tests/sanity.c)
+target_include_directories(tests PRIVATE tests)
+target_link_libraries(tests tsmm_lib)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(tests PRIVATE -O0 -g -Wall -Wextra)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(tests PRIVATE -O2 -Wall -Wextra)
+endif()
 

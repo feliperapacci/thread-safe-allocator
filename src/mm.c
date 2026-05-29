@@ -31,13 +31,6 @@
  *
  */
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdbool.h>
-#include <stdint.h>
 
 #include "mm.h"
 #include "mmhelper.h"
@@ -62,6 +55,8 @@ bool tsmm_init(void)
     for (int i = 0; i < LIST_NUM; ++i)
         lists[i] = NULL;
     
+    // get heap_start
+    heap_start = sbrk(0);
     // allocate 8 byte header (prologue) and 8 byte epilogue
     if (sbrk(2*WORD) == (void *) -1)
         return false;
@@ -79,6 +74,9 @@ bool tsmm_init(void)
 // Returns NULL if size = 0 or on failure
 void* tsmm_malloc(size_t size)
 {
+    // If size is zero, fails
+    if (size == 0) return NULL;
+    
     // block must fit payload (size), and header + footer (double word)
     size_t block_size = align(size + DWORD);
 
@@ -171,20 +169,20 @@ void* tsmm_realloc(void* oldptr, size_t size)
 {
 	// if oldptr == NULL, treat this as a malloc(size) call
 	if (oldptr == NULL){
-		return malloc(size);
+		return tsmm_malloc(size);
 	}
 
 	// if size == 0, treat this as a free(oldptr) call and return oldptr
 	if (size == 0){
-		free(oldptr);
-		return oldptr;
+		tsmm_free(oldptr);
+		return NULL;
 	}
 
 	// otherwise, adjust the size of memory block pointed to by oldptr to size
     // MAYBE TODO: OPTIMIZE
 
     // allocate new space
-    void *newptr = malloc(size);
+    void *newptr = tsmm_malloc(size);
 
     // find how large old block was and how many bytes to move
     size_t *header = (size_t *)oldptr - 1;
@@ -194,7 +192,7 @@ void* tsmm_realloc(void* oldptr, size_t size)
 
     // copy data and free old memory
     memcpy(newptr, oldptr, min);
-    free(oldptr);
+    tsmm_free(oldptr);
 
     return newptr;
 }
@@ -205,7 +203,7 @@ void* tsmm_calloc(size_t elements, size_t size)
 {
     void* ptr;
     size *= elements;
-    ptr = malloc(size);
+    ptr = tsmm_malloc(size);
     if (ptr) {
         memset(ptr, 0, size);
     }
