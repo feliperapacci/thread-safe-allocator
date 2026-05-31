@@ -2,6 +2,7 @@
 
 // Tests
 #include "sanity.h"
+#include "invariants.h"
 
 int failures = 0;
 
@@ -10,20 +11,23 @@ int main() {
     tsmm_init();
     int n = 1;
 
-    printf("Test %d: Sanity Test:\n", n++);
+    fprintf(stderr, "Test %d: Sanity Test:\n", n++);
     test_simple_allocation();
     test_edge_cases();
     test_realloc();
     test_calloc();
     test_multiple_allocations();
+
+    fprintf(stderr, "\nTest %d: Checking Heap Invariants:\n", n++);
+    check_invariants(500);
     
     // Test summary
     if (failures == 0) {
-        printf("All tests passed\n");
+        fprintf(stderr, "All tests passed\n");
         return 0;
     }
     else {
-        printf("%d tests failed\n", failures);
+        fprintf(stderr, "%d tests failed\n", failures);
         return 1;
     }
 }

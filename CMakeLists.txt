@@ -29,8 +29,11 @@ target_link_libraries(bench tsmm_lib)
 # Testing Binary
 add_executable(tests
     tests/test.c 
-    tests/sanity.c)
-target_include_directories(tests PRIVATE tests)
+    tests/sanity.c
+    tests/invariants.c)
+target_include_directories(tests PRIVATE 
+    tests
+    src)
 target_link_libraries(tests tsmm_lib)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(tests PRIVATE -O0 -g -Wall -Wextra)

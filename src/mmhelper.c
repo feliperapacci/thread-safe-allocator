@@ -30,8 +30,8 @@ lists_t get_list(size_t block_size) {
         return LIST8192;
     else if (block_size <= 16384)
         return LIST16384;
-    else if (block_size <= 32764)
-        return LIST32764;
+    else if (block_size <= 32768)
+        return LIST32768;
     else
         return LIST_BIG;
 }
