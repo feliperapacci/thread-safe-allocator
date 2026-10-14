@@ -29,7 +29,7 @@ typedef enum {
 // -------
 // GLOBALS
 // -------
-extern size_t *lists[LIST_NUM];
+extern size_t *tsmm_free_lists[LIST_NUM];
 
 // -----------------
 // -----------------
@@ -39,6 +39,7 @@ extern size_t *lists[LIST_NUM];
 
 // Returns appropriate list for a given block size 
 lists_t get_list(size_t block_size);
+unsigned int get_list_int(size_t block_size);
 
 // Input must be size of block including header and footer. Does not need to be aligned
 // Will return a pointer to the header if an appropriate block is found
@@ -190,4 +191,3 @@ static inline size_t align(size_t x)
 {
 	return ALIGNMENT * ((x+ALIGNMENT-1)/ALIGNMENT);
 }
-

@@ -1,10 +1,10 @@
 #include "mm.h"
 #include "mmhelper.h"
 #include "test.h"
-#include "invariants.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 
 // Heap invariants:
@@ -25,15 +25,15 @@
 // 11. Free list's prev and next should be consistent
 // ------------------------
 
-void check_invariants() {
-    fprintf(stderr, "----Testing for valid prologue...\n");
+void st_check_invariants() {
+    // fprintf(stderr, "----Testing for valid prologue...\n");
     // 1. Valid Prologue
     size_t *prologue = mem_heap_lo();
     CHECK(get_size(*prologue) == 0);     // Size should be zero
     CHECK(get_alloc(*prologue) == 1);    // Should be allocated
     
     // --- Block Invariants ---
-    fprintf(stderr, "----Testing block-level invariants...\n");
+    // fprintf(stderr, "----Testing block-level invariants...\n");
     size_t *curr = get_next_adjacent(prologue);
     size_t *prev = NULL;
 
@@ -78,9 +78,9 @@ void check_invariants() {
 
     // --- List Invariants ---
     prev_failures = failures;
-    fprintf(stderr, "----Testing list invariants...\n");
+    // fprintf(stderr, "----Testing list invariants...\n");
     for (int i = 0; i < LIST_NUM; i++) {
-        size_t *curr = lists[i]; // header to first item in list
+        size_t *curr = tsmm_free_lists[i]; // header to first item in list
         while (curr != NULL) {
             // 8. All blocks in between mem_heap_lo() and mem_heap_hi()
             CHECK(curr >= prologue && curr <= heap_top);
@@ -130,10 +130,10 @@ size_t random_size() {
     }
 }
 
+#define MAX_PTRS 100000
 
-#define MAX_PTRS 50000
-
-void test_invariants(unsigned int n) {
+// n is the number of total ops
+void st_test_invariants(unsigned int n) {
 
     if (n > MAX_PTRS) n = MAX_PTRS;
 
@@ -147,22 +147,22 @@ void test_invariants(unsigned int n) {
         for (unsigned int j = 0; j < op_per_check; j++) {
             ptrs[i*op_per_check + j] = tsmm_malloc(random_size());
         }
-        fprintf(stderr, "--Testing Malloc %d..\n", i);
-        check_invariants();
+        fprintf(stderr, "----Testing Malloc %d..\n", i);
+        st_check_invariants();
 
         // Realloc
         for (unsigned int j = 0; j < op_per_check; j++) {
             ptrs[i*op_per_check + j] = tsmm_realloc(ptrs[i*op_per_check + j], random_size());
         }
-        fprintf(stderr, "--Testing Realloc %d..\n", i);
-        check_invariants();
+        fprintf(stderr, "----Testing Realloc %d..\n", i);
+        st_check_invariants();
 
         // Free
         for (unsigned int j = 0; j < op_per_check; j++) {
             tsmm_free(ptrs[i*op_per_check + j]);
         }
-        fprintf(stderr, "--Testing Free %d..\n", i);
-        check_invariants();
+        fprintf(stderr, "----Testing Free %d..\n", i);
+        st_check_invariants();
     }
 
 }

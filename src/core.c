@@ -32,15 +32,14 @@
  */
 
 
-#include "mm.h"
+#include "core.h"
 #include "mmhelper.h"
 
 // -------
 // GLOBALS
 // -------
-size_t* lists[LIST_NUM]; // List headers stored here, starts empty (CHANGE TO STATIC GLOBAL LATER)
+size_t* tsmm_free_lists[LIST_NUM]; // List headers stored here, starts empty 
 static void *heap_start;
-
 
 // -------------
 // ALLOCATOR API
@@ -49,11 +48,11 @@ static void *heap_start;
 // init
 // Initializes the allocator.
 // Returns true on success, false on failure
-bool tsmm_init(void)
+bool tsmm_init_impl(void)
 {
     // init lists to NULL
     for (int i = 0; i < LIST_NUM; ++i)
-        lists[i] = NULL;
+        tsmm_free_lists[i] = NULL;
     
     // get heap_start
     heap_start = sbrk(0);
@@ -72,7 +71,7 @@ bool tsmm_init(void)
 // malloc
 // Returns a void pointer to a 16-byte aligned payload of at least [size] bytes on success
 // Returns NULL if size = 0 or on failure
-void* tsmm_malloc(size_t size)
+void* tsmm_malloc_impl(size_t size)
 {
     // If size is zero, fails
     if (size == 0) return NULL;
@@ -93,7 +92,7 @@ void* tsmm_malloc(size_t size)
         set_alloc(get_footer(header));
 
         // difference is the number of extra blocks in the selected block.
-        // (selected block refers to the block return by find_free())
+        // (selected block refers to the block returned by find_free())
         size_t difference = new_block_size - block_size;
         if (difference < SMALLEST_BLOCK)    // In this case, can't split
             return (void *)(header + 1);
@@ -118,10 +117,8 @@ void* tsmm_malloc(size_t size)
     // Reserve more memory with sbrk
     void *new_ptr = sbrk(block_size);
 
-
-    if (new_ptr == (void *)-1)
+    if (new_ptr == (void *)-1)  // sbrk will return the highest memory address on error (0xFFFF...)
         return NULL;
-
 
     // new_ptr currently points to word AFTER epilogue
     // This means it points to the payload.
@@ -139,7 +136,7 @@ void* tsmm_malloc(size_t size)
 // free
 // Frees the block pointed to by incoming pointer
 // Only works with pointers to first byte in an allocated payload
-void tsmm_free(void* ptr)
+void tsmm_free_impl(void* ptr)
 {
     // NULL pointers should not be affected by this function, so:
     if (ptr == NULL) return;
@@ -165,45 +162,62 @@ void tsmm_free(void* ptr)
 // If oldptr is null, works just like malloc
 // If size is zero, just frees oldptr
 // Else, will return a ptr to a payload at least as big as size with the same a data as *oldptr
-void* tsmm_realloc(void* oldptr, size_t size)
+void* tsmm_realloc_impl(void* oldptr, size_t size)
 {
 	// if oldptr == NULL, treat this as a malloc(size) call
 	if (oldptr == NULL){
-		return tsmm_malloc(size);
+		return tsmm_malloc_impl(size);
 	}
 
 	// if size == 0, treat this as a free(oldptr) call and return oldptr
 	if (size == 0){
-		tsmm_free(oldptr);
+		tsmm_free_impl(oldptr);
 		return NULL;
 	}
 
-	// otherwise, adjust the size of memory block pointed to by oldptr to size
-    // MAYBE TODO: OPTIMIZE
-
-    // allocate new space
-    void *newptr = tsmm_malloc(size);
-
-    // find how large old block was and how many bytes to move
+    // if block_size < old_block_size, split if possible, or else do nothing
     size_t *header = (size_t *)oldptr - 1;
-    size_t old_size = get_size(*header) - WORD;    // size of block - header
-    size_t min = old_size > size ? size : old_size;     
+    size_t block_size = align(size + DWORD);     // Header + footer + payload
+    size_t old_block_size = get_size(*header);
+    if (block_size <= old_block_size) {
+        size_t difference = old_block_size - block_size;
+        if (difference < SMALLEST_BLOCK) {      // Not enough difference to split
+            return oldptr;
+        }
+    
+        // Split:
+        // -----
+        // 1. appropriately set header and footer intended to be kept
+        set_block(header, block_size, 1);  
 
+        // 2. free remainder of block
+        size_t *remainder = (size_t *) ((char *)header + block_size);
+        set_block(remainder, difference, 1);    // Set it as allocated for free() to work
+        tsmm_free_impl((size_t *)remainder + 1);
 
-    // copy data and free old memory
-    memcpy(newptr, oldptr, min);
-    tsmm_free(oldptr);
+        return oldptr;
+    }
+
+    // else, block_size > old_block_size, must allocate new block
+    // allocate new space
+    void *newptr = tsmm_malloc_impl(size);
+    if (!newptr) return NULL;       // failure
+
+    // copy from
+    memcpy(newptr, oldptr, old_block_size - DWORD); // old_block_size - (header + footer)
+    tsmm_free_impl(oldptr);
 
     return newptr;
 }
 
 // calloc
 // Same behavior as malloc, but zero-initializes payload to zero
-void* tsmm_calloc(size_t elements, size_t size)
+void* tsmm_calloc_impl(size_t elements, size_t size)
 {
-    void* ptr;
+    if (elements != 0 && size > (SIZE_MAX / elements)) return NULL; // Checks for overflow
+
     size *= elements;
-    ptr = tsmm_malloc(size);
+    void* ptr = tsmm_malloc_impl(size);
     if (ptr) {
         memset(ptr, 0, size);
     }

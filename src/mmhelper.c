@@ -1,5 +1,42 @@
 #include "mmhelper.h"
 
+
+// Returns appropriate list's max size for a given block size 
+unsigned int get_list_int(size_t block_size) {
+    if (block_size <= 32) 
+        return 32;
+    else if (block_size <= 64)
+        return 64;
+    else if (block_size <= 96)
+        return 96;
+    else if (block_size <= 128)
+        return 128;
+    else if (block_size <= 160)
+        return 160;
+    else if (block_size <= 192)
+        return 192;
+    else if (block_size <= 224)
+        return 224;
+    else if (block_size <= 256)
+        return 256;
+    else if (block_size <= 512)
+        return 512;
+    else if (block_size <= 1024)
+        return 1024;
+    else if (block_size <= 2048)
+        return 2048;
+    else if (block_size <= 4096)
+        return 4096;
+    else if (block_size <= 8192)
+        return 8192;
+    else if (block_size <= 16384)
+        return 16384;
+    else if (block_size <= 32768)
+        return 32768;
+    else // should never reach this
+        return 0;
+}
+
 // Returns appropriate list for a given block size 
 lists_t get_list(size_t block_size) {
     if (block_size <= 32) 
@@ -47,7 +84,7 @@ size_t *find_free(size_t block_size) {
 
     // look in every sufficiently big list
     for (; list_index < LIST_NUM; ++list_index) {
-        size_t *header = lists[list_index]; // header will point to the first header (NULL if empty)
+        size_t *header = tsmm_free_lists[list_index]; // header will point to the first header (NULL if empty)
         while (header != NULL) {
             if (get_size(*header) >= block_size) // If block fits, return it
                 return header;
@@ -62,12 +99,12 @@ size_t *find_free(size_t block_size) {
 
 // Insert block that starts with "header" to beginning of "list"
 void insert(size_t *header, lists_t list) { 
-    if (lists[list] != NULL)    // If list not empty, first->prev  = curr
-        set_this_prev(lists[list], header);    
+    if (tsmm_free_lists[list] != NULL)    // If list not empty, first->prev  = curr
+        set_this_prev(tsmm_free_lists[list], header);    
 
     set_this_prev(header, NULL);            // Curr node.prev->NULL
-    set_this_next(header, lists[list]);     // Curr node.next->next_block
-    lists[list] = header;                   // List starts with new node
+    set_this_next(header, tsmm_free_lists[list]);     // Curr node.next->next_block
+    tsmm_free_lists[list] = header;                   // List starts with new node
 }
 
 // Removes block that starts with "header" from its list
@@ -77,8 +114,8 @@ void remove_header(size_t *header, lists_t list) {
     size_t *prev_header = get_prev_free(header);
     size_t *next_header = get_next_free(header);
 
-    if (lists[list] == header)      // If trying to remove first node:
-        lists[list] = next_header;  // first = curr->next
+    if (tsmm_free_lists[list] == header)      // If trying to remove first node:
+        tsmm_free_lists[list] = next_header;  // first = curr->next
     else                                        
         set_this_next(prev_header, next_header);   // prev->next = curr->next 
         

@@ -1,6 +1,6 @@
-#include "sanity.h"
+#include "st_sanity.h"
 
-void test_simple_allocation() {
+void st_test_simple_allocation() {
     fprintf(stderr, "----Testing simple allocation...\n");
 
     void *p = tsmm_malloc(16);
@@ -9,7 +9,7 @@ void test_simple_allocation() {
     tsmm_free(p);
 }
 
-void test_edge_cases() {
+void st_test_edge_cases() {
     fprintf(stderr, "----Testing edge cases...\n");
 
     CHECK(tsmm_malloc(0) == NULL);      // Assert size 0 returns NULL
@@ -24,16 +24,18 @@ void test_edge_cases() {
     tsmm_free(p);
 }
 
-void test_realloc() {
+void st_test_realloc() {
     fprintf(stderr, "----Testing realloc...\n");
 
     void *p = tsmm_malloc(32); 
+    *((int *)p) = 1234;
     p = tsmm_realloc(p, 64);
     CHECK(p != NULL);
+    CHECK(*((int *)p) == 1234);
     tsmm_free(p);
 }
 
-void test_calloc() {
+void st_test_calloc() {
     fprintf(stderr, "----Testing calloc...\n");
     
     void *p = tsmm_calloc(1, sizeof(int));
@@ -42,7 +44,7 @@ void test_calloc() {
     tsmm_free(p);
 }
 
-void test_multiple_allocations() {
+void st_test_multiple_allocations() {
     fprintf(stderr, "----Testing multiple allocations...\n");
     void *ptrs[1000];
     for (int i = 0; i < 1000; i++) {
@@ -53,3 +55,10 @@ void test_multiple_allocations() {
         tsmm_free(ptrs[i]);
 }
 
+void st_sanity_check() {
+    st_test_simple_allocation();
+    st_test_edge_cases();
+    st_test_realloc();
+    st_test_calloc();
+    st_test_multiple_allocations();
+}
